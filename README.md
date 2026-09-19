@@ -1,24 +1,34 @@
 # Carleton Smart Scheduler
 
-Carleton Smart Scheduler is a capstone project for importing an engineering academic audit, checking prerequisites, selecting courses, and generating conflict-free schedules from locally loaded course and section data. The repository contains a React/Vite client, an Express API, a PostgreSQL database accessed through Prisma, and command-line data tools.
+Smart Scheduler was built for a Carleton engineering capstone project. It reads
+an academic audit, checks course prerequisites, and generates schedules from
+locally loaded course and section data. The application has a React/Vite client,
+an Express API, a PostgreSQL database managed through Prisma, and command-line
+tools for importing data.
 
-## Status
+The project handles the main audit-import, course-selection, schedule-generation,
+and administration flows. It has not been deployed, and it should be treated as
+a course project rather than a production advising service.
 
-The main import, course-selection, schedule-generation, and administration flows are implemented. This is a student project rather than a production service. It has not been deployed from this repository.
+Raw academic audits and reports containing student information are excluded from
+this portfolio repository. The original course repository remains private.
 
-Raw student audits and PII-bearing project reports are intentionally excluded. The collaborator-owned course repository from which this portfolio copy was prepared retains separate private history and must not be published without a history cleanup and another privacy review.
+## Team and contributions
 
-## Team
+Group G67 consisted of Anas Ayoubi, Hakeem Khan, Pietro Adamvoski, and Safiullah
+Rattar.
 
-This was Group G67's capstone project, developed by Anas Ayoubi, Hakeem Khan, Pietro Adamvoski, and Safiullah Rattar.
-
-Pietro's primary work covered the PostgreSQL/Prisma data model and prerequisite representation and validation. He also contributed to project integration and documentation.
+Pietro worked primarily on the PostgreSQL and Prisma data model, including the
+tree representation used for prerequisite rules. He also contributed to the
+prerequisite evaluator, project integration, and documentation.
 
 ## Requirements
 
 - Node.js 18 or newer
 - PostgreSQL
-- `pdftotext` from Poppler for PDF audit imports; HTML audit imports do not need it
+- `pdftotext` from Poppler for PDF imports
+
+HTML audit imports do not require `pdftotext`.
 
 ## Setup
 
@@ -29,7 +39,9 @@ npm install
 npm --prefix Carletonscheduler install
 ```
 
-Set the runtime environment variables. One option is to keep them in the ignored `.env` file shown below and load that file into the shell before running application commands.
+Set the database connection, JWT secret, and browser origin. These values can be
+kept in an ignored `.env` file and loaded into the shell before starting the
+application.
 
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/smart_scheduler?schema=public"
@@ -43,14 +55,15 @@ set -a
 set +a
 ```
 
-Create the schema and seed the course and timetable data:
+Create the schema and load the course and timetable data:
 
 ```bash
 npm run db:setup
 npm run db:seed
 ```
 
-Create a login. Use `USER_ROLE=ADMIN` only for users who need the administration routes.
+Create a user account. Set `USER_ROLE=ADMIN` only for someone who needs access
+to the administration routes.
 
 ```bash
 USER_EMAIL="student@example.com" \
@@ -60,13 +73,14 @@ USER_ROLE="STUDENT" \
 npm run user:create
 ```
 
-Start both servers:
+Start the API and client together:
 
 ```bash
 npm run dev
 ```
 
-The client runs at `http://localhost:3002`; the API runs at `http://localhost:3001`.
+The client runs at `http://localhost:3002`, and the API runs at
+`http://localhost:3001`.
 
 ## Checks
 
@@ -77,18 +91,36 @@ npm --prefix Carletonscheduler run build
 npm run validate:data
 ```
 
-`npm run benchmark:schedules` runs the schedule-generation benchmark against the configured database and seeded section data.
+The unit tests focus on prerequisite evaluation and password hashing. API,
+parser, and browser-level integration coverage is still limited.
 
-## Limitations
+To run the schedule-generation benchmark against the configured database and
+seeded section data:
 
-- Audit parsing depends on Carleton's current exported HTML or PDF layout. PDF extraction is less reliable than HTML extraction.
-- Imported audits contain personal academic data. The parse endpoint processes uploads in memory, while the admin-only upload endpoint stores derived student and completion records in PostgreSQL. Raw uploaded audit files are not retained by the application.
-- Authentication uses database-backed users, scrypt password hashes, and JWTs. Account registration, password reset, token revocation, and rate limiting are not implemented.
-- Course, prerequisite, and section data are snapshots and can become outdated.
-- The frontend API URL is currently configured in `Carletonscheduler/src/config/constants.ts` for local development.
-- Database changes use `prisma db push`; versioned migrations are not included.
-- Automated coverage is focused on prerequisite evaluation. API, parser, and browser-level integration tests are limited.
+```bash
+npm run benchmark:schedules
+```
 
-## Data Sources
+## Current limits
 
-Course descriptions and prerequisite information were collected from Carleton University course pages. Timetable data must be supplied locally in the format expected by `Sched.csv`. This project is not affiliated with or endorsed by Carleton University.
+Audit parsing depends on the layout of Carleton's exported HTML and PDF files.
+HTML gives more reliable results because PDF extraction can lose layout
+information. The parser processes uploaded audits in memory, and the application
+does not retain the raw files. An administrator can store the resulting student
+and course-completion records in PostgreSQL.
+
+Users are stored in the database with scrypt password hashes. The API uses JWTs
+for authenticated requests and checks the administrator role on restricted
+routes. Registration, password reset, token revocation, and rate limiting have
+not been implemented.
+
+Course prerequisites and timetable sections are snapshots and will become stale.
+The frontend API address is configured for local development in
+`Carletonscheduler/src/config/constants.ts`. Database setup currently uses
+`prisma db push` instead of versioned migrations.
+
+## Data sources
+
+Course descriptions and prerequisite rules came from Carleton University course
+pages. Timetable data must be supplied locally in the format used by `Sched.csv`.
+This project is not affiliated with or endorsed by Carleton University.
