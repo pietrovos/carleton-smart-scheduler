@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Course {
+  id                     String             @id
+  title                  String?
+  description            String?
+  credits                Float?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  courseCompletions      CourseCompletion[]
+  electiveCategories     ElectiveCourse[]
+  prerequisiteNodes      PrerequisiteNode[] @relation("CoursePrerequisites")
+  requiredByCourses      PrerequisiteNode[] @relation("RequiredByCourses")
+  prerequisiteExpression Prerequisite?      @relation("CoursePrerequisiteExpression")
+  sections               Section[]
+
+  @@map("courses")
+}
+
+model Prerequisite {
+  courseId     String   @id
+  expression   String
+  lastModified DateTime @default(now()) @updatedAt
+  course       Course   @relation("CoursePrerequisiteExpression", fields: [courseId], references: [id])
+
+  @@map("prerequisites")
+}
+
+model PrerequisiteNode {
+  id               String             @id @default(cuid())
+  courseId         String
+  nodeType         String
+  requiredCourseId String?
+  requiredYear     String?
+  parentId         String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  requiredGrade    String?
+  course           Course             @relation("CoursePrerequisites", fields: [courseId], references: [id])
+  parent           PrerequisiteNode?  @relation("NodeHierarchy", fields: [parentId], references: [id])
+  children         PrerequisiteNode[] @relation("NodeHierarchy")
+  requiredCourse   Course?            @relation("RequiredByCourses", fields: [requiredCourseId], references: [id])
+
+  @@map("prerequisite_nodes")
+}
+
+model Section {
+  id          String   @id @default(cuid())
+  crn         String?
+  courseId    String
+  sectionCode String
+  sectionType String
+  instructor  String?
+  location    String?
+  term        String?
+  capacity    Int?
+  enrolled    Int?
+  status      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  course      Course   @relation(fields: [courseId], references: [id])
+  meetings    SectionMeeting[]
+
+  @@index([courseId])
+  @@index([term])
+  @@map("sections")
+}
+
+model SectionMeeting {
+  id           String   @id @default(cuid())
+  sectionId    String
+  days         String?
+  startTime    String?
+  endTime      String?
+  startDate    String?
+  endDate      String?
+  roomCapacity Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  section      Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@map("section_meetings")
+}
+
+model Student {
+  id                String             @id @default(cuid())
+  studentId         String             @unique
+  name              String
+  program           String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  courseCompletions CourseCompletion[]
+
+  @@map("students")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("STUDENT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model CourseCompletion {
+  id        String   @id @default(cuid())
+  studentId String
+  courseId  String
+  grade     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  course    Course   @relation(fields: [courseId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+  @@map("course_completions")
+}
+
+model ElectiveCategory {
+  id        String           @id
+  label     String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  courses   ElectiveCourse[]
+
+  @@map("elective_categories")
+}
+
+model ElectiveCourse {
+  id         String           @id @default(cuid())
+  categoryId String
+  courseId   String
+  createdAt  DateTime         @default(now())
+  category   ElectiveCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, courseId])
+  @@index([courseId])
+  @@map("elective_courses")
+}
